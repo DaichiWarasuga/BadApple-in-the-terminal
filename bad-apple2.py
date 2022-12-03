@@ -20,8 +20,8 @@ music_path = os.path.join(root_path, f"music/badapple.wav")
 video_info = ffmpeg.probe(video_path)
 width = video_info["streams"][0]['width']
 height = video_info["streams"][0]['height']
-# duration = float(video_info["format"]['duration'])
-duration = 10
+duration = float(video_info["format"]['duration'])
+# duration = 10
 
 
 out, _ = (
@@ -43,28 +43,27 @@ fix_height = terminal_size.lines  # 64
 fix_width = terminal_size.columns  # 204
 
 
-frame = arr.shape[0]
-text_array = np.full((frame, fix_height, fix_width), None)
-for i in tqdm(range(frame)):
-    resize_im = cv2.resize(arr[i], dsize=(fix_width, fix_height))
-    gray_sca = resize_im[:, :, 0] * 0.299 + \
-        resize_im[:, :, 1] * 0.587 + resize_im[:, :, 2] * 0.114
-    for j in range(fix_height):
-        for k in range(fix_width):
-            if 0 <= gray_sca[j, k] < 30:
-                text_array[i, j, k] = " "
-            elif 30 <= gray_sca[j, k] < 80:
-                text_array[i, j, k] = "`"
-            elif 80 <= gray_sca[j, k] < 160:
-                text_array[i, j, k] = "+"
-            else:
-                text_array[i, j, k] = "@"
+# frame = arr.shape[0]
+# text_array = np.full((frame, fix_height, fix_width), None)
+# for i in tqdm(range(frame)):
+#     resize_im = cv2.resize(arr[i], dsize=(fix_width, fix_height))
+#     gray_sca = resize_im[:, :, 0] * 0.299 + \
+#         resize_im[:, :, 1] * 0.587 + resize_im[:, :, 2] * 0.114
+#     for j in range(fix_height):
+#         for k in range(fix_width):
+#             if 0 <= gray_sca[j, k] < 30:
+#                 text_array[i, j, k] = " "
+#             elif 30 <= gray_sca[j, k] < 80:
+#                 text_array[i, j, k] = "`"
+#             elif 80 <= gray_sca[j, k] < 160:
+#                 text_array[i, j, k] = "+"
+#             else:
+#                 text_array[i, j, k] = "@"
 
-frame_per_time = (duration / frame)
+# frame_per_time = (duration / frame)
 
 
-def video():
-    global fix_height, text_array, frame, frame_per_time
+def video(fix_height, text_array, frame, frame_per_time):
     base_time = time.time()
     next_time = 0
     back_n = np.array(["\n" for _ in range(fix_height)]).reshape((-1, 1))
@@ -77,8 +76,7 @@ def video():
         time.sleep(next_time)
 
 
-def music():
-    global music_path
+def music(music_path):
     try:
         subprocess.run(["ffplay", "-nodisp", "-autoexit", "-hide_banner", music_path],
                         timeout=duration, stderr=subprocess.DEVNULL)
@@ -87,9 +85,28 @@ def music():
 
 
 if __name__ == "__main__":
+    frame = arr.shape[0]
+    text_array = np.full((frame, fix_height, fix_width), None)
+    for i in tqdm(range(frame)):
+        resize_im = cv2.resize(arr[i], dsize=(fix_width, fix_height))
+        gray_sca = resize_im[:, :, 0] * 0.299 + \
+            resize_im[:, :, 1] * 0.587 + resize_im[:, :, 2] * 0.114
+        for j in range(fix_height):
+            for k in range(fix_width):
+                if 0 <= gray_sca[j, k] < 30:
+                    text_array[i, j, k] = " "
+                elif 30 <= gray_sca[j, k] < 80:
+                    text_array[i, j, k] = "`"
+                elif 80 <= gray_sca[j, k] < 160:
+                    text_array[i, j, k] = "+"
+                else:
+                    text_array[i, j, k] = "@"
+
+    frame_per_time = (duration / frame)
+
     with ProcessPoolExecutor(max_workers=2) as executor:
-        executor.submit(music)
-        executor.submit(video)
+        executor.submit(music, music_path)
+        executor.submit(video, fix_height, text_array, frame, frame_per_time)
 
 
 # video(fix_height, text_array, frame, frame_per_time)
